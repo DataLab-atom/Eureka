@@ -33,10 +33,9 @@ from tenacity import (
 )
 from ...token_counter import log_token_usage
 
-os.environ["LITELLM_LOG"] = "DEBUG"
-# Optional verbose logging if set
-
+# Optional verbose logging if explicitly set (never enable by default to avoid leaking credentials)
 if os.getenv("LITELLM_VERBOSE", "").lower() in ("1", "true", "yes", "on"):
+    os.environ["LITELLM_LOG"] = "DEBUG"
     try:
         litellm.set_verbose = True
     except Exception:
