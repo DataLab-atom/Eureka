@@ -1,0 +1,1 @@
+It shows the improved average silhouette coefficient achieved by the Scanorama algorithm after optimization with the U2E evolutionary algorithm. The x-axis represents evolutionary generations, the y-axis represents silhouette coefficients, and the dashed line indicates the average silhouette coefficient obtained using other evolutionary algorithms.

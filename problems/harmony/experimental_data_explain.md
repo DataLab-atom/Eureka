@@ -1,0 +1,1 @@
+- **`dataset/pbmc_3500_meta.tsv.gz`** and **`dataset/pbmc_3500_pcs.tsv.gz`**: three datasets of human PBMCs, each assayed on the Chromium 10X platform but prepared with different protocols: 3′ end v1 (3pV1), 3′ end v2 (3pV2) and 5′ end (5p) chemistries.

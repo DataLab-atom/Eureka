@@ -1,0 +1,67 @@
+\documentclass{article}
+
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2025
+
+
+% ready for submission
+\usepackage{neurips_2025}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2025}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final]{neurips_2025}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2025}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+
+\begin{document}
+
+\section{Introduction}
+
+Integration of single‑cell transcriptomic datasets requires harmonizing either a high‑dimensional feature‑by‑cell matrix or a precomputed low‑dimensional embedding together with structured covariates that encode batch, donor, protocol and modality information for downstream joint analysis \citep{Liu2021RobustIO,Korsunsky2019FastSA}. Common preprocessing steps (centering, scaling, dimensionality reduction and columnwise normalization) set the stage for tasks such as cross‑study cell‑type discovery, marker inference, differential testing, trajectory analysis and spatial mapping.
+
+The principal challenge is that technical variation (library chemistry, capture efficiency, sequencing depth and platform biases) produces sparse, heteroskedastic and often nonlinear distortions of expression space, while rich biological heterogeneity (donor effects, continuous trajectories, rare subpopulations, condition‑driven shifts) is frequently confounded with batch \citep{Svensson2017ExponentialSO,Hie2019EfficientIO,Grn2016DeNP,Richards2021ACO}. This confounding creates a dual failure mode for integration: over‑correction that erases true biology or under‑correction that preserves technical artefacts, motivating methods that can target annotated technical signal without collapsing orthogonal biological axes.
+
+Existing algorithmic families embody contrasting separability assumptions and attendant failure modes. Regression‑based, empirical‑Bayes and design‑matrix corrections assume global, per‑feature additive or scaling effects and thus can erase cell‑state–specific biology when technical covariates are confounded with biology \citep{Li2022FastIntegrationAV,Lee2023BenchmarkingAF}. Neighbor‑matching and graph‑alignment approaches align local neighborhoods across batches but depend on adequate cross‑batch representation and preserved local geometry, conditions often violated when sampling densities or technical distortion vary \citep{Polaski2019BBKNNFB,Zhou2023AccurateIO}. Nonlinear manifold‑alignment and latent‑variable models can capture complex distortions but tend to produce corrections that are hard to interpret, unstable under confounding, and liable to distort covariance and gene–gene relationships \citep{McInnes2018UMAPUM,Xiong2021ConstructionOC,Stegle2012UsingPE,Xu2023MASIEF}.
+
+Practical use further exposes three recurrent bottlenecks. First, scalability: dense linear algebra, neighbor graphs and per‑cluster solves inflate memory and runtime on datasets that now routinely reach millions of cells, forcing downsampling or aggregation strategies that sacrifice fidelity \citep{Bilous2021MetacellsUL,Hie2024ScanoramaIL}. Second, multimodal mismatches: dissociated scRNA‑seq, single‑nucleus and spatial assays differ in feature footprints and sampling biases so that a single homogeneous transform cannot reconcile modality‑specific covariance structure \citep{Azizi2018SingleCellMO,Galow2020IntegrativeCA,Baron2016AST}. Third, benchmarking gaps: many evaluations report either batch mixing or biological conservation in isolation rather than joint metrics that detect under‑ versus over‑correction, motivating standardized, covariate‑aware benchmarks \citep{Lein2007GenomewideAO,Der2019TubularCA,Rocque2021CreationOA}.
+
+From these observations we distill practical desiderata: (i) targeted removal of annotated covariate‑associated signal while preserving orthogonal biological variation and gene–gene covariance; (ii) flexible, state‑specific models that allow covariate effects to vary across cell states; (iii) interpretable, per‑cluster diagnostics enabling audits of what was removed; and (iv) computational designs that exploit closed‑form, matrix‑local updates and blockwise streaming to operate on commodity hardware \citep{Zhang2019DefiningIC,Nicol2023RobustIO,Andreatta2020ProjectingST,Leek2007CapturingHI}. These desiderata emphasize conservative, state‑aware, diagnostically transparent and scalable harmonization.
+
+A mixture‑of‑experts (MoE) approach naturally satisfies these requirements by coupling soft clustering with cluster‑wise regression: soft responsibilities accommodate continuous manifolds and reduce brittle hard assignments, cluster‑specific ridge solves permit state‑dependent covariate removal with explicit regularization and intercept control, and all core updates admit closed‑form, matrix‑based implementations that support randomized, block‑wise updates and numerical safeguards such as smoothing and clipping \citep{Dhillon2004ConceptDF,Zhang2023SynEcoSysAM}. Building on these principles, we design an MoE‑Harmony algorithm that localizes corrections to annotated covariate subspaces, preserves angular geometry via cosine normalization, returns per‑expert coefficients for interpretation, and implements memory‑efficient updates to scale to large single‑cell collections.
+
+We evaluate this design on multi‑chemistry human PBMC collections and a large mouse atlas, projecting expression into PCA embeddings, encoding categorical covariates as design matrices and assessing harmonization with joint metrics that include subspace‑aligned correction fidelity, local mixing and covariance dissimilarity, as well as leave‑one‑donor robustness \citep{Zheng2016MassivelyPD,Arazi2019TheIC,PijuanSala2019ASM,Manno2018RNAVO,Segerstolpe2016SingleCellTP,Ritchie2015limmaPD}.
+
+These considerations motivate the method and experiments that follow. Our primary contributions are summarized below:
+
+\begin{itemize}
+\item We propose Mixture‑of‑Experts Harmony (MoE‑Harmony), a principled harmonization algorithm that couples soft clustering of cosine‑normalized embeddings with cluster‑weighted ridge regression to produce cluster‑specific, targeted batch corrections while preserving angular geometry.
+\item We introduce scalable algorithmic and implementation advances: matrix‑form centroid and responsibility updates, randomized block‑wise responsibility updates, closed‑form regularized ridge solves, and practical numerical safeguards to enable memory‑efficient operation on large single‑cell datasets.
+\item We demonstrate empirically that MoE‑Harmony improves subspace‑aligned correction fidelity and interpretability across diverse benchmarks and metrics.
+\item We release an open reference implementation mapping algorithmic steps to code to facilitate reproducibility and inspection of per‑expert corrections.
+\end{itemize}
+
+\bibliographystyle{plainnat}
+\bibliography{reference_bib}
+
+\end{document}

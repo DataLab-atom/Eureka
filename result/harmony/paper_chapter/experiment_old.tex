@@ -1,0 +1,145 @@
+
+\documentclass{article}
+
+% Use NeurIPS 2025 style as required
+\usepackage{neurips_2025}
+
+% Standard packages from the reference template
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+
+% Additional packages needed for figures and subfigures
+\usepackage{graphicx}
+\usepackage{subcaption}
+% Force floats to remain near insertion points
+\usepackage{placeins}
+% Slightly smaller captions for tighter layout
+\usepackage[font=small]{caption}
+
+% Ensure pages are numbered (keeps default behavior of the style)
+
+\begin{document}
+
+\section*{Experiment}
+
+This section describes the experimental evaluation of Mixture\-of\-Experts Harmony (MoE\-Harmony) against the reproduced baseline Harmony implementation. We first specify datasets, preprocessing and implementation settings used throughout the study. We then present the principal empirical results, embedding the experimental figures produced in the analyses and providing detailed descriptions and interpretations for each chart. Finally, we analyse the findings with respect to the method’s design principles, statistical validation and practical implications for scalability and deployment.
+
+\subsection*{Experimental Setup}
+
+\paragraph{Dataset overview and preprocessing} The evaluation used two complementary real\-world single\-cell collections. The first is a small Chromium 10X PBMC collection consisting of three independently prepared human peripheral blood mononuclear cell (PBMC) samples generated with different chemistries (3pV1, 3pV2 and 5p). For this collection we used the provided low\-dimensional representation obtained by PCA and retained the top thirty principal components for algorithm input; each principal component feature was standardized (feature\-wise zero mean and unit variance) and column\-normalized when cosine similarity computations were required by the algorithms. The second is a large mouse multi\-platform compendium of approximately 52k cells profiled on two platforms (10X and Smart\-Seq2, SS2) and annotated with donor and curated cell\-type labels spanning twelve major cell classes. For the large compendium we used the provided PCA embedding and applied the same feature standardization and column normalization prior to integration.
+
+\paragraph{Metadata encoding and design matrices} Categorical covariates used for correction and evaluation (donor, chemistry, platform and, when available, curated cell type) were converted to one\-hot encodings to form the batch indicator matrix (denoted $\Phi$) and the augmented MoE design matrix (denoted $\Phi_{\text{moe}}$, which includes an intercept row). These design matrices were supplied to both Harmony and MoE\-Harmony and were also used to build technical and biological fitted subspaces employed by evaluation metrics (for example MTSCF and MBSCF). The one\-hot structure ensures that ridge regression solves operate on low\-dimensional covariate spaces whose size equals the number of covariate categories rather than the ambient embedding dimension.
+
+\paragraph{Baseline and method implementations} Both algorithms share the same input representations and design matrices to ensure a controlled comparison. The baseline is the canonical Harmony algorithm reproduced from the reference implementation; it alternates soft cluster assignment (K\-means initialization, cosine\-based soft responsibilities) with per\-cluster ridge regression to remove covariate effects from the embedding, monitoring convergence through objective differences averaged over a sliding window. MoE\-Harmony reuses Harmony inputs and the same outer/clustering schedule but replaces the single global regression with a mixture\-of\-experts procedure that computes per\-cluster ridge solutions and applies per\-cell corrections aggregated according to the soft responsibilities. Both implementations were run with identical seeds and, where applicable, identical K\-means initializations to attribute observed differences to the algorithmic innovations rather than to differing inputs or initial conditions.
+
+\paragraph{Hyperparameters and operational choices} Default hyperparameters were selected to match common practice and to provide robust behaviour across small and large datasets. Unless otherwise noted we set the number of clusters $K$ automatically as $K = \min(\operatorname{round}(N/30), 100)$, maximum Harmony (outer) iterations to 10 (with selected experiments exploring up to 15 iterations for sensitivity analyses), maximum K\-means (inner) iterations to 20, responsibility temperature $\sigma = 0.1$ (broadcast to length $K$ when $K > 1$), $\text{block\_size} = 0.05$ to perform stochastic block updates of responsibilities, $\ell_2$ ridge regularization $\lambda_j = 1$ for covariate categories (intercept regularization set to zero), and optimization tolerances \texttt{epsilon\_kmeans} = 1e\-5 and \texttt{epsilon\_harmony} = 1e\-4 with a \texttt{window\_size} of 3 for objective averaging. These settings were used across PBMC and mouse experiments unless otherwise specified.
+
+\paragraph{Evaluation protocol and metrics} We evaluated integration fidelity and biological preservation using a set of complementary, per\-cell and local metrics. MTSCF (Technical\-subspace Correction Fraction) measures the fraction of each cell’s correction vector that lies in the subspace fitted by measured technical covariates (higher MTSCF indicates that a larger share of correction is explainable by recorded technical factors). MBSCF is computed analogously against biological design matrices (for example curated cell type) and quantifies the fraction of correction energy overlapping biological subspaces. Responsibility entropy (normalized Shannon entropy of soft cluster responsibilities) and correction magnitude (Euclidean norm of the per\-cell correction vector) quantify uncertainty in expert assignment and the strength of applied adjustment, respectively. Local Inverse Simpson’s Index (LISI) measures local covariate diversity in cell neighborhoods and was used to assess batch mixing. Finally, an alignment score (cosine similarity between a cell’s responsibility vector and the expert profile implied by its covariate indicator) quantifies whether per\-cell routing of corrections concords with measured covariates. All per\-cell metrics were computed on identical cell sets and embeddings extracted at comparable algorithmic checkpoints to enable paired statistical comparisons between methods.
+
+\paragraph{Numerical and implementation details} All linear solves were standard ridge regression fits operating on the one\-hot covariate encodings (the ridge penalty was applied to covariate coefficients but not to the intercept). To obtain orthonormal bases for technical or biological fitted subspaces we computed feature\-wise ordinary least squares fitted values and extracted an orthonormal basis via SVD; MTSCF for cell $i$ was obtained by projecting the per\-cell correction vector onto that basis and taking the fraction of squared Euclidean energy contained in the projection. Normalized responsibility entropy was computed with Shannon entropy scaled by $\log K$ to lie in $[0,1]$. LISI computation followed the standard perplexity\-matching kernel routine with a default perplexity of 30 and a kNN neighborhood size set to roughly three times the perplexity; focal cells were excluded from their own neighborhood when computing affinities. Statistical comparisons used paired tests (Wilcoxon signed\-rank where applicable, otherwise paired t\-tests) and Cohen’s $d$ for effect size reporting.
+
+\subsection*{Main Results}
+
+\paragraph{Per\-cell MTSCF comparisons across PBMC cell clusters.} Figure~\ref{fig:mtscf_violin} displays violin plots that compare the distribution of MTSCF values for MoE\-Harmony and baseline Harmony within six annotated PBMC clusters. The left\-oriented and right\-oriented violins in each panel represent the kernel density of per\-cell MTSCF values for MoE\-Harmony (teal) and Harmony (yellow) respectively; boxplot elements summarize medians and interquartile ranges and white diamonds denote means. Inset annotations report paired statistical tests and Cohen’s d effect sizes for each cluster. The figure is embedded below for reference.
+
+\FloatBarrier
+\begin{figure}[!htbp]
+  \centering
+  % Limit the height to avoid page overflow while keeping good resolution
+  \includegraphics[width=0.85\linewidth,height=0.35\textheight,keepaspectratio]{perspective/analysis_perspective_000/charts/mtscf_violin.png}
+  \caption{This figure comprises six violin plots arranged in a 2×3 grid, each representing a distinct cell cluster labeled "Cluster 0" through "Cluster 5". The vertical axis shows the MTSCF (Metric of Technical Subspace Correction Fidelity) values ranging approximately from 0 to 1. Within each subplot, two half violins depict the MTSCF distributions for two methods: MoE-Harmony (teal colored, left half) and Harmony (yellow colored, right half). Overlaid on the violins are boxplots indicating median and interquartile ranges, along with diamonds marking the mean values and vertical lines representing the confidence intervals around the means. The number of cells (n) involved in each cluster, the p-value of the paired statistical test comparing methods, and Cohen's d effect size (d) are annotated in a text box in the upper right corner of each subplot. A shared vertical axis label "MTSCF" is positioned to the left of the grid, and a legend at the bottom center identifies the colors corresponding to MoE-Harmony and Harmony methods.}
+  \label{fig:mtscf_violin}
+\end{figure}
+\FloatBarrier
+
+This chart is a multi\-panel violin plot where each subplot corresponds to a PBMC cluster. It describes the full per\-cell distributions of MTSCF under the two methods; visually and quantitatively MoE\-Harmony produces lower MTSCF distributions across all six clusters, with paired tests indicating highly significant improvements ($p < 1\mathrm{e}^{-4}$ in each cluster) and very large Cohen’s $d$ effect sizes. The figure thus illustrates that MoE\-Harmony concentrates corrective energy within the measured technical subspace more reliably than baseline Harmony, reducing off\-target removal of variation that is not explained by recorded covariates. These results support the claim that the mixture\-of\-experts weighting yields more targeted corrections that better preserve biological structure at the cell\-type level.
+
+\paragraph{Per\-cell adaptivity: responsibility entropy versus correction magnitude.} Figure~\ref{fig:entropy_corr} compares the joint distributions of normalized responsibility entropy and correction magnitude for MoE\-Harmony and baseline Harmony using smoothed 2D density contour plots. The panels depict cell density across the two\-dimensional space (entropy on the horizontal axis and correction magnitude on the vertical axis) and display Spearman correlation annotations to quantify the monotonic relationship between entropy and applied correction.
+
+\FloatBarrier
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth,height=0.32\textheight,keepaspectratio]{perspective/analysis_perspective_001/charts/responsibility_entropy_vs_correction_smooth_custom.png}
+  \caption{Density contour plots illustrating the relationship between normalized responsibility entropy and correction magnitude for two methods, MoE-Harmony and Harmony. Each subplot corresponds to one method, with the horizontal axis representing the normalized entropy of cell responsibility distributions (ranging from 0 to 1), and the vertical axis indicating the per-cell correction magnitude measured as the L2 norm of the difference between corrected and original data representations. Color gradients depict the estimated density of data points, with associated colorbars showing density scale. Spearman correlation coefficients (h) and p-values (p) are annotated within each subplot to quantify the monotonic association between normalized entropy and correction magnitude.}
+  \label{fig:entropy_corr}
+\end{figure}
+\FloatBarrier
+
+This chart describes and illustrates per\-cell adaptivity: for MoE\-Harmony there is a clear density concentration at low entropy with higher correction magnitudes, and a statistically significant negative Spearman correlation (reported in the inset), indicating that cells with confident (low\-entropy) responsibilities receive stronger, targeted corrections while ambiguous (high\-entropy) cells are adjusted more conservatively. Baseline Harmony also exhibits a negative correlation but with a more diffuse density and different correlation magnitude; together these panels demonstrate that the MoE weighting mechanism yields the operational behaviour expected from a mixture\-of\-experts: calibrated correction intensity aligned with assignment confidence.
+
+\paragraph{Correction terrain: joint dependence on local covariate diversity and alignment.} Figure~\ref{fig:correction_terrain} presents paired three\-dimensional correction terrain plots that map mean correction magnitude over the bivariate space spanned by local covariate diversity (LISI) and the alignment score between responsibilities and covariate profile. Each surface visualizes how mean correction magnitude varies across bins of diversity (x\-axis) and alignment (y\-axis); color corresponds to height (mean magnitude) and contours are projected beneath each surface. The two panels compare baseline Harmony (left) with MoE\-Harmony (right). The figure is embedded below.
+
+\FloatBarrier
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth,height=0.33\textheight,keepaspectratio]{perspective/analysis_perspective_003/charts/correction_terrain_3d_unified.png}
+  \caption{3D surface plots visualizing the mean correction magnitude across the joint space defined by diversity and alignment for two batch integration methods: Harmony (left) and MoE-Harmony (right). The horizontal axes represent diversity (x-axis) and alignment (y-axis) metrics computed per cell, while the vertical axis indicates the mean correction, calculated as the L2 norm of the correction vector applied during integration. The surfaces are smoothed interpolations over 2D binned measurements, with corresponding contour projections on the horizontal plane. Both plots share a unified color scale (color bar on the right) reflecting the magnitude of mean correction ranging from 1 to 5. Pearson correlation coefficients (r) and p-values between the product of diversity and alignment and correction magnitude are annotated within each subplot.}
+  \label{fig:correction_terrain}
+\end{figure}
+\FloatBarrier
+
+This visualization describes the correction landscape over the joint diversity–alignment space. For MoE\-Harmony the surface is smoother and displays clearer gradients, with a stronger positive association between the product (diversity $\times$ alignment) and correction magnitude (Pearson $r$ and p\-value annotated on the figure). Baseline Harmony exhibits a more heterogeneous surface with lower correlation magnitude. The surfaces therefore illustrate that MoE\-Harmony concentrates corrections where covariates are both locally diverse and responsibility\-aligned, producing a principled and interpretable correction topology.
+
+\paragraph{Large\-scale multi\-platform integration: covariance dissimilarity heatmaps.} Figures~\ref{fig:origin_harmony_ours}a--c visualize dataset mixing and inter\-donor/celltype dissimilarities for the 52k mouse compendium at three processing stages: original (uncorrected) data, baseline Harmony corrected data, and MoE\-Harmony corrected data. Each figure is a matrix whose lower triangle encodes cosine distances between cluster\-wise covariance matrices (warmer colors indicate larger dissimilarities) and whose upper triangle and diagonal embed kernel density estimates (KDEs) representing spatial overlap of batch\-specific cell distributions for the paired donor\-celltype combinations. These heatmaps provide an interpretable, cell\-type stratified view of how correction changes covariance structure and spatial overlap across platforms.
+
+\FloatBarrier
+\begin{figure}[!htbp]
+  \centering
+  \begin{subfigure}[b]{0.95\linewidth}\centering
+    \includegraphics[width=0.95\linewidth,height=0.26\textheight,keepaspectratio]{perspective/analysis_perspective_ours_1/charts/origin.png}
+  \end{subfigure}
+
+  \vspace{4mm}
+
+  \begin{subfigure}[b]{0.95\linewidth}\centering
+    \includegraphics[width=0.95\linewidth,height=0.26\textheight,keepaspectratio]{perspective/analysis_perspective_ours_1/charts/harmony.png}
+  \end{subfigure}
+
+  \vspace{4mm}
+
+  \begin{subfigure}[b]{0.95\linewidth}\centering
+    \includegraphics[width=0.95\linewidth,height=0.26\textheight,keepaspectratio]{perspective/analysis_perspective_ours_1/charts/ours.png}
+  \end{subfigure}
+
+  \caption{Three heatmaps visualize dataset mixing and cell dissimilarity among 52,000 cells, analyzed by three different methods: initial values (origin), Harmony, and MoE-Harmony (ours). Each heatmap presents a 12×12 matrix where rows and columns represent distinct cell types labeled alphabetically from A to L, corresponding to specific cell type names listed in a legend. The lower triangle of each matrix displays cosine distance values between covariance matrices of cell type-specific principal components from two donors, with color intensity encoding the magnitude of dissimilarity according to the adjacent vertical colorbar (viridis scale from low to high). The upper triangle contains embedded kernel density estimate (KDE) plots depicting the spatial distribution of cells from the two donors in UMAP 2D embeddings, colored by batch (10x in light green and SS2 in blue). Cell type labels on the axes align with the legends specifying cell identities, and batch legends clarify color mappings in KDE plots. Each figure is titled to indicate the batch correction method applied, providing a comparative view of inter-donor cell type covariance dissimilarities and UMAP-based cell distributions across methods.}
+  \label{fig:origin_harmony_ours}
+\end{figure}
+\FloatBarrier
+
+Figure~\ref{fig:origin_harmony_ours}a (original) documents substantial pre\-existing batch effects: many cell\-type pairs show large covariance distances and KDEs with limited overlap between 10X and SS2 distributions. Figure~\ref{fig:origin_harmony_ours}b (Harmony) shows reduced cosine distances and increased KDE overlap relative to the uncorrected data, indicating improved alignment. Figure~\ref{fig:origin_harmony_ours}c (MoE\-Harmony) exhibits further reduction in covariance dissimilarities and clearer, more consistent KDE overlap across many cell types, indicating superior inter\-batch alignment while retaining intra\-celltype structure. Taken together, these heatmaps demonstrate that MoE\-Harmony better aligns donor\- and platform\-specific covariance structures across cell types at large scale.
+
+\paragraph{Iterative mixing dynamics measured by LISI.} Figure~\ref{fig:lisi_iter} compares average LISI trajectories (donor LISI averaged for donor pairs) across iterations for baseline Harmony and MoE\-Harmony. Each point corresponds to average LISI for a donor pair at a given outer iteration, and arrows connect successive iteration points to visualize optimization trajectories.
+
+\FloatBarrier
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.8\linewidth,height=0.32\textheight,keepaspectratio]{perspective/analysis_perspective_ours_2/charts/plot.png}
+  \caption{Scatter plot illustrating the average Local Inverse Simpson Index (LISI) values over 15 iterations for two batch correction methods: Harmony and MoE-Harmony. The horizontal axis represents the average LISI computed between datasets A and B, while the vertical axis represents the average LISI computed between datasets A and C. Data points for each method are connected sequentially with arrowed lines indicating the progression over iterations. Distinct markers (circles for Harmony and triangles for MoE-Harmony) denote data points, with solid arrows highlighting the first four iterations and dashed lines without arrows for subsequent iterations. Horizontal and vertical dashed lines extend from the first and last points of each method to the respective axes, with corresponding numerical labels indicating LISI values. A legend identifies the methods and the chart title specifies the iteration number 15 at which the average LISI values are depicted.}
+  \label{fig:lisi_iter}
+\end{figure}
+\FloatBarrier
+
+This plot describes the integration dynamics: both methods increase mean LISI as iterations progress, but MoE\-Harmony advances more rapidly and reaches higher final mean LISI values for the donor pairs considered, indicating faster and stronger batch mixing. The trajectories illustrate that MoE\-Harmony converges to improved neighbourhood heterogeneity (higher LISI) without an observed decline due to overcorrection over the iteration window analyzed.
+
+\subsection*{Result Analysis}
+
+\paragraph{Statistical validation and paired comparisons.} The per\-cluster MTSCF comparisons were performed as paired tests on per\-cell MTSCF values within clusters, with Wilcoxon signed\-rank tests used when distributional assumptions were not met and paired t\-tests otherwise. Across all six PBMC clusters, the reduction in MTSCF for MoE\-Harmony relative to baseline Harmony was highly significant ($p < 1\mathrm{e}^{-4}$) and Cohen’s $d$ values indicate very large effect sizes (reported in the figure insets). Spearman correlations between normalized responsibility entropy and correction magnitude were computed per method to quantify adaptivity; negative correlations (statistically significant with extremely small p\-values) corroborate that smaller entropy (more confident assignments) associates with larger, targeted corrections under the MoE formulation. Pearson correlations relating the product (LISI $\times$ alignment) to correction magnitude were computed for the correction terrain analyses and show a stronger association for MoE\-Harmony than for baseline Harmony, supporting the interpretation that MoE\-Harmony concentrates corrections where covariates are both informative and locally diverse.
+
+\paragraph{Ablation and sensitivity observations.} Analyses that varied outer iteration counts show consistent trends in mixing dynamics: average donor LISI increases monotonically for both methods up to a plateau, with MoE\-Harmony achieving higher plateaus in the settings explored. When iteration trajectories were extended beyond the primary evaluation window (up to fifteen outer iterations), no systematic reversal indicating overcorrection (decline in LISI) was observed in our principal datasets under the chosen hyperparameters; however, monitoring object stabilization and LISI remains important in practice to detect dataset\-specific overcorrection. Additional sensitivity checks indicate that the most influential hyperparameters are cluster count $K$ and responsibility temperature $\sigma$; larger $K$ tends to yield more localized experts and can increase memory for responsibilities, while $\sigma$ scales the sharpness of responsibility distributions and therefore directly affects entropy and correction concentration. We therefore recommend empirically tuning $K$ and $\sigma$ on representative downsampled subsets when working with novel cohorts.
+
+\paragraph{Mechanistic interpretation based on method principles.} The empirical improvements observed for MoE\-Harmony can be traced to the method’s core mechanism: representing the corrective model as a convex mixture of per\-cluster ridge regressions allows corrections to be cell\-specific and modulated by the soft assignment distribution $R_{:,i}$. Algebraically, the per\-cell correction vector can be written as a responsibility\-weighted sum of expert contributions, which concentrates correction when responsibilities are peaked and attenuates correction when responsibilities are diffuse. This yields the observed negative correlation between responsibility entropy and correction magnitude and the structured correction terrains that align with local covariate diversity and covariate–expert concordance. The alignment score formalizes the extent to which an individual cell’s routing of corrections follows recorded covariates; its positive association with correction magnitude in regions of high LISI confirms that MoE\-Harmony effectively uses measured covariates to target adjustments where they are both local and informative.
+
+\paragraph{Scalability, computational costs and practical trade\-offs.} MoE\-Harmony’s dominant computational costs are similar in character to Harmony (K\-means clustering and responsibility updates) but include additional per\-expert ridge solves each outer iteration. Because the regressions operate on the low\-dimensional covariate design (number of covariate categories) rather than the embedding dimension, per\-expert solve costs remain modest for typical metadata sizes; nevertheless, the method introduces an $O(KN)$ memory term for the responsibility matrix and additional overhead proportional to $K$ for per\-expert sufficient statistics. In practice, we leveraged stochastic block updates for responsibilities and exploited the sparse structure of one\-hot covariates to control memory and runtime; these engineering choices allowed routine processing of the 52k dataset on modest resources in our experiments. For very large cohorts practitioners should consider sparse storage of responsibilities, blocked or mini\-batch responsibility updates, parallelization of independent expert solves and careful choice or pooling of rare covariate levels to manage both memory and statistical stability.
+
+\paragraph{Limitations and diagnostic guidance.} While MoE\-Harmony improves targeted correction and interpretability, it introduces increased algorithmic complexity, a higher tuning burden for hyperparameters such as $K$ and $\sigma$, and an elevated memory footprint due to the responsibility matrix. The method remains linear in its per\-expert correction step and therefore may not fully remove strongly nonlinear batch effects; moreover, when recorded covariates are confounded with biology, careful monitoring via MTSCF/MBSCF, responsibility entropy and alignment diagnostics is essential to detect potential overcorrection. Practical mitigations include pooling rare covariate levels, applying stronger ridge regularization for experts with small effective sample sizes, and early stopping when objective measures and LISI trajectories plateau.
+
+\paragraph{Recommendations for practitioners.} Based on the integrated empirical evidence, MoE\-Harmony is recommended when per\-cell, covariate\-aware corrections and interpretable attribution of adjustments are priorities, and when computational resources allow maintaining responsibilities for the target $K$. Analysts should (i) select $K$ proportionally to $N$ or using diagnostic heuristics, (ii) tune $\sigma$ on representative subsets to calibrate responsibility sharpness, (iii) monitor MTSCF/MBSCF, LISI trajectories and responsibility entropy to detect overcorrection, and (iv) use blocked updates and parallelized expert solves to scale to large studies.
+
+\end{document}

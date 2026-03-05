@@ -1,0 +1,44 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2025
+
+% ready for submission
+\usepackage{neurips_2025}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\begin{document}
+
+\section{Introduction}
+
+Convex composite problems that combine a smooth data‑fidelity term with a nonsmooth regularizer (most commonly the \(\ell_1\) penalty) are a cornerstone of modern signal processing and high‑dimensional inference: they promote sparsity while preserving convexity and admit scalable proximal and splitting solvers with provable guarantees \citep{Bottou2016OptimizationMF,Liu2024LearningWN}. In large‑scale regimes two computational bottlenecks dominate: forming full gradients or exact proximal maps is often infeasible, and practitioners therefore resort to incremental or minibatch evaluations and approximate inner solves to keep per‑step cost manageable \citep{Xie2025OnTH,Jofr\'e2017OnVR}. Extensions that incorporate adaptive steps, higher‑order or variance‑reduced techniques have improved robustness to heterogeneous noise but typically assume idealized or vanishing error models \citep{Faw2023BeyondUS,Lupu2021ConvergenceAO}.
+
+In practice, approximate gradient or proximal computations arise routinely: minibatching and distributed partial evaluations introduce sampling bias and variance \citep{Wang2025SDRSMSD,Singh2023MinibatchSS}, Monte‑Carlo approximations of integrals induce persistent stochastic error \citep{Atchad\'e2014OnPP}, and inexact inner solvers for proximal steps leave residuals that need not vanish sufficiently fast to be neglected \citep{Yang2025ShadowpointEI}. These per‑iteration inaccuracies accumulate across iterations, amplifying variance and biasing descent directions; absent explicit control, such accumulation commonly leads algorithms to converge only to a neighborhood of the true minimizer rather than to the minimizer itself \citep{Combettes2015StochasticAA,Cui2020VarianceReducedSS}.
+
+Most existing analyses rely on sampling‑with‑replacement models or unbiased oracle assumptions that simplify martingale and expectation arguments but fail to capture the dependence structure introduced by sampling without replacement (random reshuffling) and by persistent computational errors \citep{Hermer2022NonexpansiveMO,Li2022AUC}. While remedies such as averaging or progressively tightened tolerances can recover accuracy, they incur extra computation or require restrictive schedules \citep{Shamir2012StochasticGD,Schmidt2013MinimizingFS}. Recent work on stochastic splitting and auxiliary‑problem principles offers important measurability and convergence foundations under perturbations, yet often still presumes vanishing perturbations or independence that real implementations violate \citep{Bittar2021TheSA,Combettes2009ProximalSM}.
+
+Bridging these gaps demands algorithms that (i) operate with sampling without replacement, (ii) tolerate non‑vanishing computational errors, and (iii) explicitly control error propagation without undoing per‑iteration efficiency. A complementary line of research advocates for computer‑aided or interpolation‑based proofs and Lyapunov constructions to handle complex noise models in first‑order methods, suggesting a path to finite‑sample guarantees under dependent sampling and general perturbations \citep{Juditsky2008SolvingVI,Rubbens2025ComputeraidedAO}. Empirically, stabilized proximal and variance‑reduced splitting schemes demonstrate that careful residual control and momentum‑like aggregation improve robustness and support structure identification in structured convex problems \citep{Chouzenoux2022SABRINAAS,Dai2023AVA}.
+
+Motivated by these algorithmic and analytical deficiencies, we propose an approach that integrates explicit residual tracking, momentum‑based aggregation, and reshuffling sampling to reconcile computational efficiency with exact convergence guarantees. The remainder of this paper formulates this algorithmic design, develops a finite‑sample epochwise analysis under reshuffling and persistent errors, and reports numerical evaluations comparing against practical baselines that illustrate improved epoch‑wise decay and robustness to inexactness \citep{Kim2021OnlineSG}.
+
+We now summarize our main contributions:
+\begin{itemize}
+  \item We introduce Error‑Compensated Proximal Random Reshuffling (EC‑PRR), an iterative method that maintains and updates a residual accumulator to compensate persistent gradient and proximal approximation errors while using momentum and reshuffling to preserve efficiency.
+  \item We develop an epochwise Lyapunov analysis that yields finite‑sample convergence bounds to the true minimizer under sampling without replacement and non‑vanishing computational errors, avoiding i.i.d.\/unbiased oracle assumptions.
+  \item We validate EC‑PRR empirically on large‑scale sparse recovery tasks, demonstrating faster epoch‑wise error decay and greater robustness to operator and observation inexactness than competitive proximal‑random‑reshuffling baselines.
+\end{itemize}
+
+\bibliographystyle{plainnat}
+\bibliography{reference_bib}
+
+\end{document}

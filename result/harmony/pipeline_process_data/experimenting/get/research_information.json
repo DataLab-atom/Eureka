@@ -1,0 +1,4 @@
+{
+    "method_name": "Mixture-of-Experts Harmony (MoE-Harmony)",
+    "main_research": "Main research area: Integration and harmonization of single‑cell transcriptomic data—developing approaches to jointly analyze scRNA‑seq datasets across different technologies, studies, biological conditions, and modalities (including spatial transcriptomics) to recover coherent cell‑type structure. Core bottleneck: Technical and biological sources of variation are deeply confounded across platforms and studies, making it hard to remove batch effects without erasing true biology; the need to account for multiple experimental and biological covariates simultaneously; scalability limits when datasets reach millions of cells on modest hardware; challenges in aligning modalities (e.g., spatial and single‑cell) and reliably benchmarking integration while preserving meaningful biological signal."
+}

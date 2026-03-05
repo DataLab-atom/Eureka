@@ -1,0 +1,130 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2025
+
+% ready for submission
+\usepackage{neurips_2025}
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2025}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final]{neurips_2025}
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2025}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+
+\begin{document}
+
+\section{Methodology}
+
+This chapter presents the mathematical formulation and algorithmic details of Mixture-of-Experts Harmony (MoE-Harmony), a scalable framework for integrating single-cell transcriptomic data across batches and modalities. We first introduce the notation and precise preprocessing steps used to obtain a stable input representation. We then describe the alternating optimization procedure that interleaves soft clustering with cluster-informed ridge regression batch correction, together with the objective function and convergence checks that govern iteration termination.
+
+\subsection{Problem definition and notation}
+
+Consider a raw single-cell expression matrix $Z \in \mathbb{R}^{d \times N}$, where $d$ denotes the number of features (for example genes) and $N$ denotes the number of cells. Preprocessing transforms $Z$ into a standardized, cosine-normalized representation used throughout the algorithm. Let $\mu \in \mathbb{R}^d$ be the per-feature mean and let $s \in \mathbb{R}^d$ be the per-feature sample standard deviation, defined by
+\begin{align}
+    \mu_i &= \frac{1}{N} \sum_{j=1}^N Z_{i,j}, \\
+    s_i &= \sqrt{ \frac{1}{N-1} \sum_{j=1}^N (Z_{i,j} - \mu_i)^2 },
+\end{align}
+with the practical safeguard that any $s_i$ below a small threshold $\tau_s$ (e.g. $\tau_s = 10^{-8}$) is set to $1$ to avoid numerical instability. The standardized data is $\hat{Z}$ with entries
+\begin{equation}
+    \hat{Z}_{i,j} = \frac{Z_{i,j} - \mu_i}{s_i}.
+\end{equation}
+Column-wise Euclidean normalization produces the cosine-normalized matrix $Z_{\mathrm{cos}} \in \mathbb{R}^{d \times N}$ by
+\begin{equation}
+    Z_{\mathrm{cos}:,j} = \frac{\hat{Z}_{:,j}}{\|\hat{Z}_{:,j}\|_2},
+\end{equation}
+where any column norm below a threshold $\tau_c$ (e.g. $\tau_c = 10^{-16}$) is clipped to avoid division by zero. All subsequent operations use $\hat{Z}$ and $Z_{\mathrm{cos}}$.
+
+The method models $K$ mixture components (clusters) with centroids $Y = [y_1, \dots, y_K] \in \mathbb{R}^{d \times K}$ where each $y_k$ is unit-norm. Batch membership is encoded by a one-hot indicator matrix $\Phi \in \{0,1\}^{B \times N}$, where $B$ is the number of batches and $\Phi_{b,j}=1$ if and only if cell $j$ belongs to batch $b$. A batch-design matrix with an intercept row is denoted $\Phi^{(\mathrm{moe})} \in \mathbb{R}^{(B+1) \times N}$ (first row a constant intercept), used in the ridge regression correction. The prior batch proportions are $\mathrm{Pr} \in \mathbb{R}^B$ with
+\begin{equation}
+    \mathrm{Pr}_b = \frac{1}{N} \sum_{j=1}^N \Phi_{b,j}.
+\end{equation}
+
+Soft cluster membership is represented by $R \in \mathbb{R}^{K \times N}$ with entries $R_{k,j} = p(k \mid j)$, subject to column-wise normalization $\sum_{k=1}^K R_{k,j} = 1$ for each $j$. For each cluster $k$ define a positive temperature parameter $\sigma_k > 0$ that controls assignment sharpness; write $\sigma = (\sigma_1, \dots, \sigma_K)$. Batch-effect influence parameters are denoted $\theta \in \mathbb{R}^B$, with elements $\theta_b$ controlling the strength of batch-correction bias for batch $b$. The regularization strength used in ridge regression is $\lambda > 0$. Other algorithmic hyperparameters are \texttt{block\_size} $\in (0,1]$, the maximum number of K-means refinement rounds $\mathrm{max\_iter_{kmeans}}$, the maximum number of outer harmonization iterations $\mathrm{max\_iter_{harmony}}$, and tolerances $\varepsilon_{kmeans}$, $\varepsilon_{harmony}$ used in the stopping criteria; a K-means objective window size $w$ (typically $w=3$) is used to stabilize relative-change checks.
+
+Two cluster-level batch statistics are maintained. Let $r_k = \sum_{j=1}^N R_{k,j}$ denote the total soft mass of cluster $k$. Define the expected batch counts $E \in \mathbb{R}^{K \times B}$ and observed batch counts $O \in \mathbb{R}^{K \times B}$ by
+\begin{align}
+    E_{k,b} &= r_k \cdot \mathrm{Pr}_b, \\
+    O_{k,b} &= \sum_{j=1}^N R_{k,j} \Phi_{b,j}.
+\end{align}
+Element-wise additive smoothing by $+1$ is used in subsequent log-ratio computations to guarantee numerical stability. The element-wise entropy contribution is given by $h(R_{k,j}) = R_{k,j} \log R_{k,j}$, interpreted as zero when $R_{k,j}$ equals zero by continuous extension.
+
+\subsection{Mixture-of-Experts harmonization algorithm and core formulas}
+
+MoE-Harmony alternates between \textit{(i)} centroid refinement, \textit{(ii)} probabilistic assignment updates that incorporate batch-diversity modulation, and \textit{(iii)} cluster-weighted ridge regression corrections that remove batch-associated contributions from the original standardized expression. All updates are expressed in closed form and implemented using matrix operations for computational efficiency; here we present the mathematical operations driving each step.
+
+Centroid refinement uses weighted averages of the cosine-normalized embeddings. Given the current soft assignments $R$ and $Z_{\mathrm{cos}}$, the $k$-th centroid is updated as
+\begin{equation}
+    y_k = \frac{\sum_{j=1}^N R_{k,j} z_j}{\left\| \sum_{j=1}^N R_{k,j} z_j \right\|_2},
+\end{equation}
+where $z_j$ denotes the $j$-th column of $Z_{\mathrm{cos}}$ and the normalization enforces $\|y_k\|_2 = 1$ to preserve cosine geometry.
+
+Pairwise cosine dissimilarities between centroids and cells are computed as
+\begin{equation}
+    D_{k,j} = 2 \bigl(1 - y_k^\top z_j \bigr),
+\end{equation}
+which forms the $K \times N$ distance matrix $D$. The soft assignment update uses a temperature-scaled exponential kernel modulated by batch-diversity factors. For numerical stability a maximum-shift inside the exponential is applied in practice; the idealized closed-form update is
+\begin{equation}
+    R_{k,j} = \frac{\exp\bigl(-D_{k,j} / \sigma_k\bigr) \cdot M_{k,j}}{\sum_{k'=1}^K \exp\bigl(-D_{k',j} / \sigma_{k'}\bigr) \cdot M_{k',j}},
+\end{equation}
+with the batch-modulation factor
+\begin{equation}
+    M_{k,j} = \prod_{b=1}^B \left( \frac{E_{k,b} + 1}{O_{k,b} + 1} \right)^{\theta_b \Phi_{b,j}}.
+\end{equation}
+This modulation downweights cluster assignments that would exacerbate observed-vs-expected batch imbalances, thereby encouraging batch-diverse clustering when $\theta$ places weight on that objective. Entropy regularization is implicitly controlled by the $\sigma_k$ parameters, since the assignment update derives from minimizing the composite objective described below.
+
+The batch-correction step is a mixture-of-experts ridge regression that estimates, for each cluster $k$, the contribution of batch covariates to the original (standardized) expression $\hat{Z}$ and removes these contributions in a soft, cluster-weighted manner. For cluster $k$ construct the weighted batch design $\Phi_{R_k}$ by scaling each column $j$ of $\Phi^{(\mathrm{moe})}$ by $R_{k,j}$; in matrix form
+\begin{equation}
+    \Phi_{R_k} = \Phi^{(\mathrm{moe})} \cdot \mathrm{diag}(R_{k,:}).
+\end{equation}
+The ridge regression problem solves for $W_k \in \mathbb{R}^{(B+1) \times d}$ minimizing
+\begin{equation}
+    \| \hat{Z} - W^\top \Phi_{R_k} \|_F^2 + \lambda \|W\|_F^2.
+\end{equation}
+The closed-form solution is
+\begin{equation}
+    W_k = \left( \Phi_{R_k} \Phi^{(\mathrm{moe})\top} + \lambda I \right)^{-1} \Phi_{R_k} \hat{Z}^\top.
+\end{equation}
+To preserve a global intercept and avoid removing overall mean structure, the intercept row of $W_k$ is treated appropriately (set to zero for subtraction of batch-specific effects). The corrected expression matrix is obtained by subtracting the estimated batch contributions across all clusters:
+\begin{equation}
+    Z_{\mathrm{corr}} = \hat{Z} - \sum_{k=1}^K W_k^\top \Phi_{R_k}.
+\end{equation}
+Following correction, columns of $Z_{\mathrm{corr}}$ are renormalized to unit norm to produce the updated $Z_{\mathrm{cos}}$ used in the next iteration.
+
+The MoE-Harmony objective that these updates implicitly minimize is the sum of three terms: a clustering fidelity term, an entropy regularization term, and a batch cross-entropy term. Writing $\sigma_k$ for cluster temperatures and using the notation above, the objective evaluated at $R$ and $Y$ is
+\begin{equation}
+    \mathcal{L}(R,Y,\theta) = \sum_{k=1}^K \sum_{j=1}^N R_{k,j} D_{k,j} + \sum_{k=1}^K \sigma_k \sum_{j=1}^N R_{k,j} \log R_{k,j} + \sum_{k=1}^K \sum_{j=1}^N R_{k,j} \sigma_k \sum_{b=1}^B \theta_b \Phi_{b,j} \log \left(\frac{O_{k,b} + 1}{E_{k,b} + 1}\right).
+\end{equation}
+The first term enforces proximity to centroids, the second penalizes overly confident (low-entropy) assignments, and the third penalizes cluster-within-batch imbalances via the observed/expected log-ratio weighted by batch coefficients $\theta$.
+
+Convergence and stopping are governed by relative-change criteria on the K-means sub-objective and the global harmony objective. Denote by $\mathcal{L}_{\mathrm{kmeans}}^{(t)}$ the K-means-level objective at an internal iteration index $t$ and by $\mathcal{L}_{\mathrm{harmony}}^{(m)}$ the outer harmony objective after outer iteration $m$. K-means refinement is considered converged when the relative change of the sum of $\mathcal{L}_{\mathrm{kmeans}}$ over a sliding window of size $w$ satisfies
+\begin{equation}
+    \frac{\left| \sum_{i=t-w}^{t-1} \mathcal{L}_{\mathrm{kmeans}}^{(i)} - \sum_{i=t-w+1}^{t} \mathcal{L}_{\mathrm{kmeans}}^{(i)} \right|}{\left| \sum_{i=t-w}^{t-1} \mathcal{L}_{\mathrm{kmeans}}^{(i)} \right|} < \varepsilon_{kmeans}.
+\end{equation}
+The outer harmonization loop terminates when
+\begin{equation}
+    \frac{\mathcal{L}_{\mathrm{harmony}}^{(m-1)} - \mathcal{L}_{\mathrm{harmony}}^{(m)}}{\left| \mathcal{L}_{\mathrm{harmony}}^{(m-1)} \right|} < \varepsilon_{harmony}
+\end{equation}
+or when the pre-specified maximum iteration counts are reached. A randomized update ordering of cells and block-wise updates of assignment columns are used to reduce memory pressure and to produce robust, scalable updates: cells are partitioned into blocks and assignment updates are applied sequentially per block while incrementally updating $E$ and $O$.
+
+All linear-algebra operations (centroid updates, assignment updates, and ridge regression solves) are implemented as matrix operations to leverage optimized numerical libraries and to maintain scalability when $N$ is large. Regularization parameter $\lambda$, the set of temperatures $\{\sigma_k\}$, and batch coefficients $\theta$ control the trade-off between aggressive batch removal and preservation of biological heterogeneity; they can be tuned according to empirical benchmarks or prior expectations about batch severity.
+
+\end{document}
