@@ -1,0 +1,49 @@
+\documentclass{article}
+
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2025
+
+
+% ready for submission
+\usepackage{neurips_2025}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2025}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final]{neurips_2025}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2025}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\begin{document}
+
+\section*{Related Work}
+
+\textbf{Single-cell transcriptomic data integration} Recent advances in this domain have employed probabilistic frameworks and deep learning models to effectively disentangle batch effects while preserving intrinsic biological heterogeneity. However, challenges persist in scalability, handling multiple covariates, and aligning multimodal data such as spatial transcriptomics. Existing methods like ComBat and mutual nearest neighbors (MNN) have demonstrated efficacy in mitigating batch-associated technical variation but often struggle to separate confounded biological heterogeneity when experimental covariates overlap \citep{Bttner2018ATM,Haghverdi2018BatchEI}. Embedding-based integration techniques employing adversarial learning or manifold alignment aim to project cells into shared latent spaces, addressing nonlinear batch effects but facing difficulties in interpretability and consistent preservation of cell-type-specific expression across heterogeneous datasets \citep{Liu2020JointlyDC,Regev2017TheHC}. Foundational work on defining cell types underscores the complexity posed by biological variability and technical confounders \citep{Regev2017TheHC}. Building upon this landscape, the proposed Mixture-of-Experts Harmony (MoE-Harmony) utilizes a mixture-of-experts architecture combined with efficient optimization strategies, enabling scalable integration across large datasets and multiple modalities while preserving nuanced biological variation~\citep{Maan2022TheDI,Dou2020UnbiasedIO}.
+
+\textbf{Batch effect correction in high-dimensional biological data} Addressing the balance between mitigating batch effects and preserving true biological distinctions remains a central theme. Notably, benchmarking frameworks utilizing reference samples and mixed cell populations highlight the trade-offs inherent in batch correction methods~\citep{Chen2020AMS}. With the proliferation of single-cell sequencing platforms, scalable and biologically faithful integration algorithms have become imperative~\citep{Gondal2024ASO}. Approaches incorporating mixture-of-experts models, exemplified by MoE-Harmony, enhance integration by modeling confounded technical and biological variation within expert clusters, providing scalability and flexibility. Recent techniques integrate multi-modal single-cell datasets by explicitly modeling latent technical and biological covariates to mitigate confounding while maintaining biological signals \citep{Butler2018IntegratingST,Wu2024SinglecellST}. Hierarchical and adaptive clustering methods dynamically adjust integration granularity, improving cell-type resolution and mitigating batch-induced artifacts in complex experimental designs \citep{Hicks2018MissingDA,Venkatasubramanian2019ResolvingSH}.
+
+\textbf{Scalable clustering and mixture-of-experts models in bioinformatics} Scalable clustering techniques leveraging mixture-of-experts frameworks have gained prominence for integrating and harmonizing complex single-cell transcriptomic datasets, addressing confounding technical and biological factors across batches and platforms \citep{Mereu2020BenchmarkingSR,Arya2025NavigatingSR}. Methods like MoE-Harmony combine iterative clustering refinements and regularization, enabling simultaneous correction of batch effects and preservation of cell-type structure at scale, with enhanced performance. Complementary approaches employ probabilistic graphical models to capture hierarchical batch and biological variability, maintaining subtle gene expression patterns during multimodal integration \citep{Squair2021PrioritizationOC,Lun2016ASW}. The adoption of flexible cluster assignments and ridge regression-based corrections facilitates nuanced modeling of biological complexity while accounting for batch diversity and multiple covariates. Furthermore, integration of domain adaptation within mixture-of-experts frameworks improves model transferability across heterogeneous datasets, reducing retraining demands and broadening applicability \citep{Mandric2020BATMANFA}.
+
+\bibliographystyle{plainnat}
+\bibliography{reference_bib}
+
+\end{document}

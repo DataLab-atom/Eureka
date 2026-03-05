@@ -1,0 +1,19 @@
+[
+  "The differential impacts of dataset imbalance in single-cell data integration",
+  "Unbiased integration of single cell multi-omics data",
+  "A test metric for assessing single-cell RNA-seq batch correction",
+  "Batch effects in single-cell RNA-sequencing data are corrected by matching mutual nearest neighbors",
+  "Jointly defining cell types from multiple single-cell datasets using LIGER",
+  "The Human Cell Atlas",
+  "A multicenter study benchmarking single-cell RNA sequencing technologies using reference samples",
+  "A systematic overview of single-cell transcriptomics databases, their use cases, and limitations",
+  "Single-cell sequencing to multi-omics: technologies and applications",
+  "Integrating single-cell transcriptomic data across different conditions, technologies, and species",
+  "Missing data and technical variability in single‐cell RNA‐sequencing experiments",
+  "Resolving single-cell heterogeneity from hundreds of thousands of cells through sequential hybrid clustering and NMF",
+  "Benchmarking single-cell RNA-sequencing protocols for cell atlas projects",
+  "Navigating single-cell RNA-sequencing: protocols, tools, databases, and applications",
+  "A step-by-step workflow for low-level analysis of single-cell RNA-seq data with Bioconductor",
+  "Prioritization of cell types responsive to biological perturbations in single-cell data with Augur",
+  "BATMAN: Fast and Accurate Integration of Single-Cell RNA-Seq Datasets via Minimum-Weight Matching"
+]

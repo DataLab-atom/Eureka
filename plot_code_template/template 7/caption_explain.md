@@ -1,0 +1,1 @@
+It presents a comparison of the errors obtained by different optimization algorithms in solving the ReactDiffusion problem under four data processing schemes.The horizontal axis represents the mean error, the vertical axis represents the standard deviation, and bar plots of the mean error are displayed along the other two axes.

@@ -1,0 +1,86 @@
+﻿active_problem: demo
+
+paths:
+  result_dir: result
+  problems_dir: problems
+  vector_db_dir: vector_database
+  plot_code_template_dir: plot_code_template
+
+llm:
+  temperature: 1.0
+  text_model_name: gpt-4.1-mini
+  multimodal_model_name: gpt-4.1-mini
+
+method_writing:
+  write_model_name: gpt-4.1-mini
+  integration_model_name: gpt-4.1-mini
+  temperature: 1.0
+  improve_round: 2
+
+related_work_writing:
+  text_model_name: gpt-5-mini
+  multimodal_model_name: gpt-5-mini
+  judge_model_name: gpt-5-mini
+  temperature: 0.7
+  retrieval_data_num: 5
+  used_cite_num: 3
+  used_data_num: 3
+  field_num: 3
+  sentence_num: 2
+
+introduction_writing:
+  text_model_name: gpt-4.1-mini
+  multimodal_model_name: gpt-5-mini
+  integration_model_name: gpt-5-mini
+  temperature: 1.0
+  retrieval_data_num: 8
+  used_data_num: 4
+
+merge_writing:
+  write_model_name: gpt-4.1-mini
+  judge_model: gpt-4.1
+  temperature: 1.0
+  improve_round: 2
+  check_round: 0
+  evol_iter: 2
+  population: 3
+
+database_building:
+  embedding_model: BAAI/bge-m3
+  embedding_model_source: api
+  pdf_transform_mode: local
+  api_parsing_method: file
+  text_data_processing:
+    min_tokens: 1300
+    max_tokens: 2400
+    chunk_size: 700
+  all_paper_num: 5
+  database_device: cpu
+  chart_model_name: gpt-4.1-mini
+  judge_model_name: gpt-5-mini
+  temperature: 1.0
+
+experiment:
+  mode: get
+  devices: ["no_device", 2]
+  perspectives: ["analysis_perspective_000","analysis_perspective_001","analysis_perspective_002","analysis_perspective_003"]
+  embedding_model: BAAI/bge-m3
+  embedding_model_source: api
+  reranker_path: BAAI/bge-reranker-v2-m3
+  reranker_model_source: api
+  database_device: cpu
+  text_model_name: gpt-5-mini
+  multimodel_model_name: gpt-5-mini
+  judge_model_name: gpt-4.1
+  temperature: 1.0
+  retrieval_data_num: 20
+  reranked_data_num: 8
+  analysis_perspective_num: 10
+
+drawing:
+  retrieval_template_num: 5
+  max_try: 5
+
+experiment_writing:
+  integration_model_name: gpt-4.1-mini
+  temperature: 1.0

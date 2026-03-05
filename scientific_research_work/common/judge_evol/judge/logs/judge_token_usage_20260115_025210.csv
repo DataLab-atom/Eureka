@@ -1,0 +1,2 @@
+timestamp,model,prompt_tokens,completion_tokens,total_tokens,cost
+2026-01-15 02:52:10,gpt-5-mini,3917,1174,5091,0.0033272499999999995
