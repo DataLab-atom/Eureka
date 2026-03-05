@@ -50,7 +50,7 @@ class SiliconFlowEmbeddings(Embeddings):
             result = response.json()
             embeddings = [item["embedding"] for item in sorted(result["data"], key=lambda x: x["index"])]
             return embeddings
-        raise RuntimeError(f"embedding API failed: {response.status_code}, {response.text}")
+        raise RuntimeError(f"embedding API failed: {response.status_code}")
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         batch_size = 10
